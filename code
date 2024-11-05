@@ -1,0 +1,196 @@
+use hotel;
+
+#analysis based on poeple, booking behaviour
+#1 No of cancellations across no of adults
+select num_adults,  count(*) as total_bookings,
+    sum(case when booking_status = 'Canceled' then 1 else 0 end) as canceled_bookings,
+    sum(case when booking_status = 'Canceled' then 1 else 0 end) / count(*) * 100 as cancellation_percentage from hotell
+group by num_adults
+order by cancellation_percentage desc;
+ 
+#2Total No of people bookings
+ select case 
+			when num_child+num_adults=1 then'single'
+            when num_child+num_adults=2 then'double'
+            when num_child+num_adults=3 then'triple'
+            else 'multiple'
+            end as number_of_people,
+count(*) as total_booking, 
+ sum(case when booking_status='Canceled' then 1 else 0 end) as canceled_bookings,
+ sum(case when booking_status='Canceled' then 1 else 0 end)/ count(*)*100 as  cancellation_percentage  from hotell
+ group by number_of_people
+ order by cancellation_percentage desc ;
+ 
+ #3 Cancellations for parents V/s non-parents
+select case 
+	when num_child>0 then 'parent' else 'non' 
+    end as parental_status,
+    count(*) as total_bookings,
+    sum(case when booking_status = 'Canceled' then 1 else 0 end) as canceled_bookings,
+    sum(case when booking_status = 'Canceled' then 1 else 0 end) / count(*) * 100 as cancellation_percentage from hotell
+group by parental_status
+order by cancellation_percentage desc; 
+
+ #4 repeaters vs firsttime
+ select case repeated_guest
+			when 1 then 'Repeater'
+            when 0 then 'First timer'
+            end as visitor_type,
+count(*) as total_booking, 
+ sum(case when booking_status='Canceled' then 1 else 0 end) as canceled_bookings,
+ sum(case when booking_status='Canceled' then 1 else 0 end)/ count(*)*100 as  cancellation_percentage  from hotell
+ group by visitor_type order by cancellation_percentage desc ;
+ 
+ #first-timers have higher chance of cancellation
+ 
+ #5 previous cancellations - failed bookings
+ select previous_cancellations ,count(*) as total_booking, 
+ sum(case when booking_status='Canceled' then 1 else 0 end) as canceled_bookings,
+ sum(case when booking_status='Canceled' then 1 else 0 end)/ count(*)*100 as  cancellation_percentage  from hotell
+ group by previous_cancellations order by cancellation_percentage desc;
+ 
+ #6 no previous cancellations - succesfull booking
+ select not_canceled_bookings as 'succesful bookings',count(*) as total_booking, 
+ sum(case when booking_status='Canceled' then 1 else 0 end) as canceled_bookings,
+ sum(case when booking_status='Canceled' then 1 else 0 end)/ count(*)*100 as  cancellation_percentage  from hotell
+ where repeated_guest=1
+ group by not_canceled_bookings order by total_booking desc,cancellation_percentage desc; 
+ 
+# Analysis based on hotel and facilities availed
+ 
+#1 Cancelations on room price
+
+select distinct avg_roomprice from hotell
+order by avg_roomprice; 						#to find the range of room price
+
+select case when avg_roomprice <=25 then 'Budget'
+			when avg_roomprice <=50 then 'Standard'
+			when avg_roomprice <=75 then 'Premium'
+            when avg_roomprice >75 then 'Luxury'
+            end as room_class,
+          count(*) as total_booking, 
+ sum(case when booking_status='Canceled' then 1 else 0 end) as canceled_bookings,
+ sum(case when booking_status='Canceled' then 1 else 0 end)/ count(*)*100 as  cancellation_percentage 
+ from hotell
+ group by room_class
+ order by cancellation_percentage desc ;
+
+#2 meal plan selected
+
+select 
+    mealplan,
+    count(*) as total_bookings,
+    sum(case when booking_status = 'Canceled' then 1 else 0 end) as canceled_bookings,
+    sum(case when booking_status = 'Canceled' then 1 else 0 end) / count(*) * 100 as cancellation_percentage
+from hotell
+group by mealplan
+order by  cancellation_percentage desc;
+
+
+#3 room type selected
+
+select 
+    room_type,
+    count(*) as total_bookings,
+    sum(case when booking_status = 'Canceled' then 1 else 0 end) as canceled_bookings,
+    sum(case when booking_status = 'Canceled' then 1 else 0 end) / count(*) * 100 as cancellation_percentage
+from hotell
+group by room_type
+order by cancellation_percentage desc ;
+
+#4 parking space required/not
+
+select case parkingspace when 1 then 'Yes' else 'No' end as 'parking space booking'
+, count(*) as total_booking, sum(case when booking_status='Canceled' then 1 else 0 end) as canceled_bookings,
+ sum(case when booking_status='Canceled' then 1 else 0 end)/ count(*)*100 as  cancellation_percentage
+ from hotell
+ group by parkingspace;
+
+#5 No of special requests
+select num_specialrequests, count(*) as total_booking, 
+sum(case when booking_status='Canceled' then 1 else 0 end) as canceled_bookings,
+sum(case  when booking_status='Canceled' then 1 else 0 end)/count(*)*100 as cancellation_percentage
+from hotell
+group by  num_specialrequests
+order by cancellation_percentage desc;
+
+# Analysis on trends in booking days , leadtime,etc
+
+#1 Month wise
+select  
+    case arrival_month
+        when 1 then 'january'
+        when 2 then 'february'
+        when 3 then 'march'
+        when 4 then 'april'
+        when 5 then 'may'
+        when 6 then 'june'
+        when 7 then 'july'
+        when 8 then 'august'
+        when 9 then 'september'
+        when 10 then 'october'
+        when 11 then 'november'
+        when 12 then 'december'
+        else 'invalid month'
+    end as months, avg(lead_time),
+    round(avg(avg_roomprice), 2) as avg_room_price, count(*) as total_bookings,
+    sum(case when booking_status = 'canceled' then 1 else 0 end) as canceled_bookings,
+    sum(case when booking_status = 'canceled' then 1 else 0 end) * 100.0 / count(*) as cancellation_percentage
+from hotell
+group by months
+order by cancellation_percentage desc,avg_room_price desc;
+
+ #2 lead time cancellation
+
+   with rangee as (
+    select booking_status, lead_time, ntile(5) over (order by lead_time) as lead_time_range
+    from hotell )															#for dividing the lead time based on equal no of bookings for fair evaluation
+
+select 
+    min(lead_time) as leadtime_start, max(lead_time) as leadtime_end, count(*) as total_booking, 
+    sum(case when booking_status = 'canceled' then 1 else 0 end) as canceled_bookings,
+    sum(case when booking_status = 'canceled' then 1 else 0 end) / count(*) * 100 as cancellation_percentage
+from rangee
+group by lead_time_range
+order by lead_time_range;
+
+
+#3 weekday or weekend booking
+
+select case when num_week=0 and num_weekend<>0  then 'weekend' 
+			when num_weekend=0 and num_week<>0  then 'weekday'
+            when num_weekend<>0 and num_week<>0  then 'combined'
+            when num_weekend=0 and num_week=0  then 'other' 
+            end as weektype,  
+count(*) as total_booking, sum(case when booking_status='Canceled' then 1 else 0 end) as canceled_bookings,
+ sum(case when booking_status='Canceled' then 1 else 0 end)/ count(*)*100 as  cancellation_percentage
+ from hotell
+ group by weektype;
+
+#4 market segment - onine,offline,corporate,etc..
+ 
+ select market_segment_type, count(*) as total_booking, 
+ sum(case when booking_status='Canceled' then 1 else 0 end) as canceled_bookings,
+ sum(case when booking_status='Canceled' then 1 else 0 end)/ count(*)*100 as  cancellation_percentage
+ from hotell group by market_segment_type
+ order by cancellation_percentage desc;
+ 
+ 
+ # Change in total revenue when cancelation rate is decreased by 15%
+ 
+#total revenue of uncanceled bookings
+select ROUND(sum(avg_roomprice*(num_weekend + num_week))) from hotell where booking_status<>'Canceled';
+
+#amount lost due canceled bookings
+select ROUND(sum(avg_roomprice),2) from hotell where booking_status='Canceled';
+
+# 15% of canceled bookings
+select (ROUND(sum(avg_roomprice*(num_weekend + num_week))*0.15)) from hotell where booking_status='Canceled';
+
+#revenue with a reduction in 15% of cancellation rate
+select
+(select ROUND(sum(avg_roomprice*(num_weekend + num_week))) from hotell where booking_status<>'Canceled')
++
+(select (ROUND(sum(avg_roomprice*(num_weekend + num_week)*0.15))) as reduction
+from hotell where booking_status='Canceled') as total;
+
